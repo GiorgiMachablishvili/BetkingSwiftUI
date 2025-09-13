@@ -121,19 +121,21 @@ struct WorkoutsInfoView: View {
                     workout: $workout,
                     isRootTabBarVisible: $isRootTabBarVisible,
                     onFinished: {
-                        // Called by the timer at 00:00
-                        isRootTabBarVisible = true   // show parent bar for Home
-                        goToTimer = false            // pop Timer
-                        dismiss()                    // pop Info -> Home
+                        isRootTabBarVisible = true     // we’re going back to Home -> show parent bar
+                        goToTimer = false              // pop Timer
+                        DispatchQueue.main.async {     // then pop Info
+                            dismiss()
+                        }
                     }
                 )
             } label: { EmptyView() }
             .hidden()
         )
+        .onAppear { isRootTabBarVisible = false }
         .safeAreaInset(edge: .bottom) {
             CreateModeTabBar(
                 onBack: {
-                            isRootTabBarVisible = true
+                            isRootTabBarVisible = false
                             dismiss()
                         },
                 onAction: { goToTimer = true },
