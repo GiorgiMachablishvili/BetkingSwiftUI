@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct WorkoutHistoryItem: Identifiable {
+struct WorkoutHistoryItem: Identifiable, Hashable {
     let id = UUID()
     let date = Date()
     let title: String

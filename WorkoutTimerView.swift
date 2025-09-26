@@ -18,12 +18,21 @@ struct WorkoutTimerView: View {
     @State private var remainingSeconds: Int = 0
     @State private var isRunning = true
     @State private var didFinishOnce = false
+    @State private var goToDetail = false
 
     private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
+        
+
         ZStack {
             Color.backViewColor.ignoresSafeArea()
+
+            NavigationLink(
+                destination: WorkoutDetailView(initialTab: .home),
+                isActive: $goToDetail
+            ) { EmptyView() }
+                .hidden()
 
             VStack {
                 // Top card
@@ -101,23 +110,45 @@ struct WorkoutTimerView: View {
             )
         )
 
-        // Navigate Home
+        // Make the tab bar visible on the next screen (your tab host)
+        isRootTabBarVisible = true
+
+        // Jump to Home tab in the tab host
+        goToDetail = true
+
+        // Optional: parent side-effects (analytics, haptics, etc.)
         onFinished()
+
     }
+
+//    private func parseDurationSeconds(_ text: String) -> Int {
+//        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+//        if trimmed.contains(":") {
+//            let parts = trimmed.split(separator: ":").map(String.init)
+//            let mm = Int(parts.first ?? "0") ?? 0
+//            let ss = Int(parts.dropFirst().first ?? "0") ?? 0
+//            return max(0, mm * 60 + ss)
+//        } else {
+//            // treat as minutes
+//            let minutes = Int(trimmed) ?? 0
+//            return max(0, minutes * 60)
+//        }
+//    }
 
     private func parseDurationSeconds(_ text: String) -> Int {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.contains(":") {
+            // still support "mm:ss" just in case
             let parts = trimmed.split(separator: ":").map(String.init)
             let mm = Int(parts.first ?? "0") ?? 0
             let ss = Int(parts.dropFirst().first ?? "0") ?? 0
             return max(0, mm * 60 + ss)
         } else {
-            // treat as minutes
-            let minutes = Int(trimmed) ?? 0
-            return max(0, minutes * 60)
+            // 👇 NOW: treat plain numbers as SECONDS (not minutes)
+            return max(0, Int(trimmed) ?? 0)
         }
     }
+
 
     private func formattedTime(_ totalSeconds: Int) -> String {
         let m = totalSeconds / 60

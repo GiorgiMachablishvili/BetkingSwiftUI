@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct Workout: Identifiable {
+struct Workout: Identifiable, Hashable {
     let id: UUID = UUID()
     let title: String
     let workoutType: String
@@ -26,20 +26,14 @@ struct Workout: Identifiable {
 }
 
 struct WorkoutHomeView: View {
+    @EnvironmentObject var workoutStore: WorkoutStore
     @Binding var isRootTabBarVisible: Bool
     @State private var searchText = ""
 
-    @State private var workouts: [Workout] = [
-        .init(title: "Full body Burn", workoutType: "run faster run", duration: "00:05", usersCount: 2, imageURL: "fitnessWorkout", isFavorite: true),
-        .init(title: "Body Burn", workoutType: "do what can you do as fast as you can, if you do well you will be a pro", duration: "18", usersCount: 4, imageURL: "runWorkout", isFavorite: false),
-        .init(title: "Leg day", workoutType: "jump to be good basketball player", duration: "12", usersCount: 7, imageURL: "yogaWorkout", isFavorite: true),
-        .init(title: "Run day", workoutType: "run for your life", duration: "24", usersCount: 8, imageURL: "runWorkout", isFavorite: false)
-    ]
-
     private var filteredIndices: [Int] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !q.isEmpty else { return Array(workouts.indices) }
-        return workouts.indices.filter { workouts[$0].title.lowercased().contains(q) }
+        guard !q.isEmpty else { return Array(workoutStore.workouts.indices) }
+        return workoutStore.workouts.indices.filter { workoutStore.workouts[$0].title.lowercased().contains(q) }
     }
 
     var body: some View {
@@ -49,7 +43,7 @@ struct WorkoutHomeView: View {
                 ZStack {
                     Rectangle()
                         .fill(Color.blueColor)
-                        .frame(width: .infinity, height: 145)
+                        .frame(maxWidth: .infinity, minHeight: 145, maxHeight: 145)
                         .cornerRadius(20)
                     VStack {
                         Text("WORKOUTS")
@@ -86,11 +80,11 @@ struct WorkoutHomeView: View {
                         ForEach(filteredIndices, id: \.self) { i in
                             NavigationLink {
                                 WorkoutsInfoView(
-                                    workout: $workouts[i],
+                                    workout: $workoutStore.workouts[i],
                                     isRootTabBarVisible: $isRootTabBarVisible
                                 )
                             } label: {
-                                WorkoutCard(workout: $workouts[i])
+                                WorkoutCard(workout: $workoutStore.workouts[i])
                                     .frame(width: 372, height: 280)
                                     .frame(maxWidth: .infinity)
                             }
@@ -101,9 +95,7 @@ struct WorkoutHomeView: View {
                     .padding(.top, 16)
                     .padding(.bottom, 24)
                 }
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 50)
-                }
+                .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 50) }
             }
             .ignoresSafeArea(.all)
             .background(Color.backViewColor.ignoresSafeArea())
@@ -116,16 +108,26 @@ struct WorkoutHomeView: View {
 }
 
 private struct WorkoutCard: View {
+    @EnvironmentObject var workoutStore: WorkoutStore
     @Binding var workout: Workout
 
     var body: some View {
         ZStack {
-            Image(workout.imageURL)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 372, height: 280)
-                .cornerRadius(24)
-                .clipped()
+            if let img = workoutStore.images[workout.id] {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 372, height: 280)
+                    .cornerRadius(24)
+                    .clipped()
+            } else {
+                Image(workout.imageURL)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 372, height: 280)
+                    .cornerRadius(24)
+                    .clipped()
+            }
 
             LinearGradient(
                 gradient: Gradient(colors: [Color.black.opacity(0.0), Color.black.opacity(0.55)]),
@@ -140,7 +142,7 @@ private struct WorkoutCard: View {
                     HStack(spacing: 6) {
                         Image(systemName: "clock.fill")
                             .imageScale(.small)
-                        Text("\(workout.duration) min")
+                        Text("\(workout.durationDisplay) min")
                             .font(.system(size: 12, weight: .semibold))
                     }
                     .foregroundColor(.white)

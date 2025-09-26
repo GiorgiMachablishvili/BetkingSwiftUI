@@ -8,22 +8,28 @@
 import SwiftUI
 
 struct WorkoutDetailView: View {
-    @State private var searchText = ""
-    @State private var selectedTab: AppTab = .home
-    @State private var showPlusSheet = false
+    init(initialTab: AppTab = .home) {
+        _selectedTab = State(initialValue: initialTab)
+    }
+
+    @State private var selectedTab: AppTab
     @State private var isRootTabBarVisible = true
+
+    @StateObject private var workoutStore = WorkoutStore()
+    @StateObject private var createVM = CreateWorkoutViewModel()
     @StateObject private var historyStore = WorkoutHistoryStore()
 
     var body: some View {
-        // Content switches with selected tab
         Group {
             switch selectedTab {
             case .home:
                 WorkoutHomeView(isRootTabBarVisible: $isRootTabBarVisible)
+                    .environmentObject(workoutStore)
             case .favorites:
                 FavoritesView()
             case .add:
-                CreateWorkoutView()
+                CreateWorkoutView(vm: createVM)
+                    .environmentObject(workoutStore)
             case .library:
                 HistoryView()
             case .profile:
@@ -32,25 +38,33 @@ struct WorkoutDetailView: View {
         }
         .background(Color.backViewColor.ignoresSafeArea())
         .environmentObject(historyStore)
-
-        // Pin the custom tab bar INSIDE this screen
         .safeAreaInset(edge: .bottom) {
             if isRootTabBarVisible {
                 if selectedTab == .add {
                     CreateModeTabBar(
                         onBack: { selectedTab = .home },
-                        onAction: { print(">>> Action pressed <<<") },
+                        onAction: {
+                            if let w = createVM.buildWorkout() {
+                                workoutStore.workouts.insert(w, at: 0)
+                                if let img = createVM.selectedImage {
+                                    workoutStore.images[w.id] = img
+                                }
+                                createVM.reset()
+                                selectedTab = .home    // 👈 navigate to Home
+                            } else {
+                                print("Please enter a workout name.")
+                            }
+                        },
                         actionTitle: "Public"
                     )
                 } else {
                     CustomTabBarView(selected: $selectedTab) { }
                 }
-            } else {
-                EmptyView()
             }
         }
     }
 }
+
 
 #Preview {
     WorkoutDetailView()
